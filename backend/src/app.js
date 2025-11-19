@@ -1,5 +1,5 @@
 // =========================================================
-// GREAT NEXUS - APP CORE (Multi-tenant + Segurança + API)
+// GREAT NEXUS — Core Application (Enterprise SaaS)
 // =========================================================
 
 const express = require("express");
@@ -10,59 +10,53 @@ const rateLimit = require("express-rate-limit");
 const fileUpload = require("express-fileupload");
 const morgan = require("morgan");
 const compression = require("compression");
+const path = require("path");
 
 const { connectDB } = require("./config/db");
-const { authMiddleware } = require("./middleware/auth.middleware");
-const { tenantMiddleware } = require("./middleware/tenant.middleware");
 
-// ========== ROUTES ==========
-const authRoutes = require("./routes/auth.routes");
-const tenantRoutes = require("./routes/tenants.routes");
-const productRoutes = require("./routes/products.routes");
-const salesRoutes = require("./routes/sales.routes");
-const investmentsRoutes = require("./routes/investments.routes");
-const crmRoutes = require("./routes/crm.routes");
-const hrRoutes = require("./routes/hr.routes");
-const mrpRoutes = require("./routes/mrp.routes");
-const b2bRoutes = require("./routes/b2b.routes");
-const logisticsRoutes = require("./routes/logistics.routes");
-
-// ========== ERROR HANDLER ==========
-const { errorHandler } = require("./middleware/error.middleware");
+const { verifyToken } = require("./middleware/auth.middleware");
+const tenantMiddleware = require("./middleware/tenant.middleware");
+const accessLogMiddleware = require("./middleware/accessLog.middleware");
+const errorHandler = require("./middleware/error.middleware");
 
 const app = express();
 
 // =========================================================
 // 1. SECURITY MIDDLEWARES
 // =========================================================
-app.use(helmet());                   // Proteção contra ataques comuns
-app.use(cors());                     // Permite requests externos (Ex: frontend React)
-app.use(mongoSanitize());            // Evita injeção MongoDB
-app.use(express.json({ limit: "5mb" }));
+
+app.use(helmet());
+app.use(cors({ origin: "*" }));
+app.use(mongoSanitize());
+
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// RATE LIMIT (Anti-DDOS)
+// Anti-DDOS
 app.use(
   rateLimit({
-    windowMs: 1 * 60 * 1000,
-    max: 150, // 150 requests por minuto
+    windowMs: 60 * 1000,
+    max: 150,
   })
 );
 
-// FILE UPLOADS
+// File uploads
 app.use(
   fileUpload({
     useTempFiles: true,
     tempFileDir: "/tmp/",
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    limits: { fileSize: 10 * 1024 * 1024 },
   })
 );
 
-// LOGS
+// Logging
 app.use(morgan("dev"));
 
-// PERFORMANCE BOOST
+// Compression
 app.use(compression());
+
+// Serve uploaded files
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // =========================================================
 // 2. DATABASE CONNECTION
@@ -70,40 +64,56 @@ app.use(compression());
 connectDB();
 
 // =========================================================
-// 3. PUBLIC ROUTES
+// 3. HEALTH CHECK
 // =========================================================
-app.use("/api/v1/auth", authRoutes);
-
-// =========================================================
-// 4. PROTECTED ROUTES (Login Obrigatório)
-// =========================================================
-app.use("/api/v1", authMiddleware, tenantMiddleware);
-
-// ERP BASE
-app.use("/api/v1/tenants", tenantRoutes);
-app.use("/api/v1/products", productRoutes);
-app.use("/api/v1/sales", salesRoutes);
-
-// MOLA (Investimentos)
-app.use("/api/v1/mola", investmentsRoutes);
-
-// CRM
-app.use("/api/v1/crm", crmRoutes);
-
-// HR
-app.use("/api/v1/hr", hrRoutes);
-
-// MRP
-app.use("/api/v1/mrp", mrpRoutes);
-
-// B2B
-app.use("/api/v1/b2b", b2bRoutes);
-
-// LOGISTICS
-app.use("/api/v1/logistics", logisticsRoutes);
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "Great Nexus API" });
+});
 
 // =========================================================
-// 5. GLOBAL ERROR HANDLER
+// 4. PUBLIC ROUTES
+// =========================================================
+app.use("/api/v1/auth", require("./routes/auth.routes"));
+
+// =========================================================
+// 5. PROTECTED ROUTES (JWT + TENANT + AUDITORIA)
+// =========================================================
+app.use(
+  "/api/v1",
+  verifyToken,        // usuário autenticado
+  tenantMiddleware,   // vincula tenant
+  accessLogMiddleware // auditoria de acessos
+);
+
+// ========== ERP BASE ==========
+app.use("/api/v1/tenants", require("./routes/tenants.routes"));
+app.use("/api/v1/products", require("./routes/products.routes"));
+app.use("/api/v1/sales", require("./routes/sales.routes"));
+app.use("/api/v1/purchases", require("./routes/purchases.routes"));
+app.use("/api/v1/suppliers", require("./routes/suppliers.routes"));
+app.use("/api/v1/categories", require("./routes/categories.routes"));
+app.use("/api/v1/warehouses", require("./routes/warehouses.routes"));
+
+// ========== GREAT MOLA ==========
+app.use("/api/v1/mola", require("./routes/investments.routes"));
+
+// ========== CRM ==========
+app.use("/api/v1/crm", require("./routes/crm.routes"));
+
+// ========== HR ==========
+app.use("/api/v1/hr", require("./routes/hr.routes"));
+
+// ========== MRP ==========
+app.use("/api/v1/mrp", require("./routes/mrp.routes"));
+
+// ========== B2B ==========
+app.use("/api/v1/b2b", require("./routes/b2b.routes"));
+
+// ========== LOGISTICS ==========
+app.use("/api/v1/logistics", require("./routes/logistics.routes"));
+
+// =========================================================
+// 6. ERROR HANDLER
 // =========================================================
 app.use(errorHandler);
 
