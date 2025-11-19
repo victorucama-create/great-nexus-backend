@@ -1,10 +1,31 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const ctrl = require('../controllers/purchases.controller');
-const auth = require('../middleware/auth.middleware');
-const role = require('../middleware/role.middleware');
 
-router.get('/', auth.verifyToken, role.requireTenantAdmin, ctrl.getAll);
-router.post('/', auth.verifyToken, role.requireTenantAdmin, ctrl.create);
+const ctrl = require("../controllers/purchases.controller");
+const { authMiddleware } = require("../middleware/auth.middleware");
+const { requireRole } = require("../middleware/role.middleware");
+const { tenantMiddleware } = require("../middleware/tenant.middleware");
+
+// ===========================
+// PURCHASES - Compras
+// ===========================
+
+// Listar compras do tenant
+router.get(
+  "/",
+  authMiddleware,
+  tenantMiddleware,
+  requireRole("tenant_admin", "inventory_manager", "purchasing_manager"),
+  ctrl.getAll
+);
+
+// Criar ordem de compra
+router.post(
+  "/",
+  authMiddleware,
+  tenantMiddleware,
+  requireRole("tenant_admin", "inventory_manager", "purchasing_manager"),
+  ctrl.create
+);
 
 module.exports = router;
