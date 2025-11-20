@@ -1,11 +1,16 @@
 const express = require("express");
 const router = express.Router();
-const authController = require("../controllers/auth.controller");
+const authCtrl = require("../controllers/auth.controller");
 
-// REGISTER COMPANY + USER
-router.post("/register", authController.register);
+// já devem existir register/login
+router.post("/register", authCtrl.register);
+router.post("/login", authCtrl.login);
 
-// LOGIN
-router.post("/login", authController.login);
+// Forgot password & Reset
+router.post("/forgot-password", authCtrl.forgotPassword);
+router.post("/reset-password", authCtrl.resetPassword);
+
+// Refresh token (se existir)
+router.post("/refresh", authCtrl.refreshToken);
 
 module.exports = router;
