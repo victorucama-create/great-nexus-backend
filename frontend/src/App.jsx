@@ -1,8 +1,19 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+// frontend/src/App.jsx
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 import MainLayout from "./layout/MainLayout";
-import ProtectedRoute from "./components/ProtectedRoute";
 
-// Páginas base do sistema
+// ============================
+// AUTH PAGES
+// ============================
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+
+// ============================
+// MODULE PAGES (protected)
+// ============================
 import Dashboard from "./pages/dashboard/Dashboard";
 import Products from "./pages/products/Products";
 import Inventory from "./pages/inventory/Inventory";
@@ -18,20 +29,25 @@ import Logistics from "./pages/logistics/Logistics";
 import Settings from "./pages/settings/Settings";
 import Profile from "./pages/profile/Profile";
 
-// Autenticação
-import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
-
+// ============================
+// APP ROUTER
+// ============================
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* 📌 ROTAS PÚBLICAS */}
+        {/* -------------------------------
+              ROTAS PÚBLICAS (sem login)
+           ------------------------------- */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* 📌 ROTAS PROTEGIDAS (Só entram autenticados) */}
+        {/* -------------------------------
+               ROTAS PROTEGIDAS
+           ------------------------------- */}
         <Route
           element={
             <ProtectedRoute>
@@ -55,6 +71,10 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
         </Route>
 
+        {/* -------------------------------
+                FALLBACK DEFAULT
+           ------------------------------- */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
