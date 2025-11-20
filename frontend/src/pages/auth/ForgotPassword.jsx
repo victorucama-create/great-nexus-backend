@@ -1,77 +1,106 @@
-// frontend/src/pages/auth/ForgotPassword.jsx
 import { useState } from "react";
-import api from "../../services/api";
+import { Link } from "react-router-dom";
+import axios from "../../services/api";
+import Lottie from "lottie-react";
+import emailAnimation from "../../assets/lottie/email.json";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState(null); // null | 'sent' | 'error' | 'loading'
-  const [msg, setMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setStatus("loading");
-    setMsg("");
+    setLoading(true);
+    setErrorMsg("");
+
     try {
-      const res = await api.post("/auth/forgot-password", { email });
-      if (res.data?.success) {
-        setStatus("sent");
-        setMsg("Se o email existir, enviámos instruções para reconfigurar a password.");
-      } else {
-        setStatus("error");
-        setMsg(res.data?.message || "Erro ao processar pedido.");
+      const res = await axios.post("/auth/forgot-password", { email });
+
+      if (res.data.success) {
+        setSent(true);
       }
     } catch (err) {
-      setStatus("error");
-      setMsg("Erro de comunicação. Tente novamente mais tarde.");
+      setErrorMsg(err.response?.data?.message || "Erro ao enviar código.");
     }
+
+    setLoading(false);
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="w-full max-w-md bg-white shadow rounded-lg p-8">
-        <h2 className="text-xl font-bold mb-2">Recuperar Password</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Insira o email da conta. Iremos enviar um link para reconfigurar a password.
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 dark:bg-gray-900">
+      
+      <div className="bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-10 max-w-md w-full">
+
+        {/* HEADER */}
+        <h1 className="text-3xl font-bold text-center mb-2 dark:text-white">
+          Recuperar Password
+        </h1>
+        <p className="text-center text-gray-500 dark:text-gray-300 mb-6">
+          Insira o seu email para receber o código de recuperação
         </p>
 
-        {status === "sent" && (
-          <div className="mb-4 p-3 bg-green-50 text-green-700 rounded" role="status">
-            {msg}
+        {/* LOTTIE ANIMATION */}
+        <div className="w-48 h-48 mx-auto mb-4">
+          <Lottie animationData={emailAnimation} loop={true} />
+        </div>
+
+        {/* CONFIRMAÇÃO DE ENVIO */}
+        {sent ? (
+          <div className="text-center">
+            <p className="text-green-600 dark:text-green-400 text-lg font-medium mb-6">
+              ✔ Código enviado para o seu email!
+            </p>
+            <Link
+              to="/reset-password"
+              className="w-full block bg-blue-600 hover:bg-blue-700 text-white text-center py-3 rounded-xl transition"
+            >
+              Inserir Código OTP
+            </Link>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+
+            {/* INPUT EMAIL */}
+            <div className="mb-4">
+              <label className="block text-gray-600 mb-1 dark:text-gray-300">
+                Email
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 dark:text-white outline-none border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 transition"
+                placeholder="o.seu@email.com"
+              />
+            </div>
+
+            {/* ERRO */}
+            {errorMsg && (
+              <p className="text-red-500 text-sm mb-3">{errorMsg}</p>
+            )}
+
+            {/* SUBMIT */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition disabled:opacity-50"
+            >
+              {loading ? "A enviar..." : "Enviar código"}
+            </button>
+          </form>
         )}
 
-        {status === "error" && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded" role="alert">
-            {msg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="block text-sm font-medium text-gray-700" htmlFor="email">
-            Email
-          </label>
-          <input
-            id="email"
-            className="w-full px-3 py-2 border rounded"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            aria-required="true"
-          />
-
-          <button
-            type="submit"
-            disabled={status === "loading"}
-            className="w-full py-2 bg-indigo-600 text-white rounded"
-            aria-busy={status === "loading"}
+        {/* VOLTAR AO LOGIN */}
+        <div className="text-center mt-6">
+          <Link
+            to="/login"
+            className="text-blue-600 hover:underline dark:text-blue-400"
           >
-            {status === "loading" ? "A processar..." : "Enviar instruções"}
-          </button>
-        </form>
-
-        <div className="mt-4 text-sm text-gray-500">
-          <a href="/login" className="text-indigo-600">Voltar ao login</a>
+            ← Voltar para Login
+          </Link>
         </div>
       </div>
     </div>
