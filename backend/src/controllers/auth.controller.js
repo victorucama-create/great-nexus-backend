@@ -8,21 +8,26 @@ const {
 } = require("../utils/jwt");
 
 const LoginLog = require("../models/LoginLog.model");
+const nodemailer = require("nodemailer");
+
+// =====================================
+// EMAIL SENDER
+// =====================================
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 module.exports = {
   // ============================================================
-  // REGISTER (CRIAR TENANT + ADMIN)
+  // REGISTER (TENANT + ADMIN)
   // ============================================================
   async register(req, res) {
     try {
-      const {
-        name,
-        email,
-        password,
-        companyName,
-        country,
-        currency,
-      } = req.body;
+      const { name, email, password, companyName, country, currency } = req.body;
 
       const exists = await User.findOne({ email });
       if (exists) {
@@ -32,7 +37,6 @@ module.exports = {
         });
       }
 
-      // Criar tenant
       const tenant = await Tenant.create({
         name: companyName,
         slug: companyName.toLowerCase().replace(/\s+/g, "-"),
@@ -42,7 +46,6 @@ module.exports = {
         active: true,
       });
 
-      // Criar utilizador Admin
       const hashed = await bcrypt.hash(password, 10);
 
       const user = await User.create({
@@ -53,26 +56,19 @@ module.exports = {
         tenantId: tenant._id,
       });
 
-      // Remover password do retorno
       const userClean = user.toObject();
       delete userClean.password;
 
-      // Tokens
       const accessToken = generateAccessToken(user);
       const refreshToken = generateRefreshToken(user);
 
-      res.json({
+      return res.json({
         success: true,
         message: "Conta criada com sucesso!",
-        data: {
-          user: userClean,
-          tenant,
-          accessToken,
-          refreshToken,
-        },
+        data: { user: userClean, tenant, accessToken, refreshToken },
       });
     } catch (e) {
-      res.status(500).json({ success: false, message: e.message });
+      return res.status(500).json({ success: false, message: e.message });
     }
   },
 
@@ -91,7 +87,6 @@ module.exports = {
         });
       }
 
-      // Verificar password
       const valid = await bcrypt.compare(password, user.password);
       if (!valid) {
         return res.status(400).json({
@@ -100,7 +95,6 @@ module.exports = {
         });
       }
 
-      // Verificar status do tenant
       let tenant = null;
       if (user.role !== "super_admin") {
         tenant = await Tenant.findById(user.tenantId);
@@ -113,15 +107,12 @@ module.exports = {
         }
       }
 
-      // Remover password do retorno
       const userClean = user.toObject();
       delete userClean.password;
 
-      // Tokens JWT
       const accessToken = generateAccessToken(user);
       const refreshToken = generateRefreshToken(user);
 
-      // Registrar log de login
       await LoginLog.create({
         userId: user._id,
         tenantId: user.tenantId || null,
@@ -132,12 +123,93 @@ module.exports = {
       return res.json({
         success: true,
         message: "Login bem-sucedido!",
-        data: {
-          user: userClean,
-          tenant,
-          accessToken,
-          refreshToken,
-        },
+        data: { user: userClean, tenant, accessToken, refreshToken },
+      });
+    } catch (e) {
+      return res.status(500).json({
+        success: false,
+        message: e.message,
+      });
+    }
+  },
+
+  // ============================================================
+  // FORGOT PASSWORD (GERAR OTP)
+  // ============================================================
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: "Este email não existe no sistema.",
+        });
+      }
+
+      // Criar OTP de 6 dígitos
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      user.resetOTP = otp;
+      user.resetOTPExpire = Date.now() + 10 * 60 * 1000; // 10 min
+      await user.save();
+
+      // Enviar email com OTP
+      await transporter.sendMail({
+        from: `"Great Nexus" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Código de Recuperação de Password",
+        html: `
+          <h2>Recuperação de Password</h2>
+          <p>O seu código OTP é:</p>
+          <h1 style="font-size:32px; letter-spacing:4px;">${otp}</h1>
+          <p>Este código expira em 10 minutos.</p>
+        `,
+      });
+
+      return res.json({
+        success: true,
+        message: "Código OTP enviado para o email.",
+      });
+    } catch (e) {
+      return res.status(500).json({
+        success: false,
+        message: e.message,
+      });
+    }
+  },
+
+  // ============================================================
+  // RESET PASSWORD (VALIDAR OTP)
+  // ============================================================
+  async resetPassword(req, res) {
+    try {
+      const { email, otp, newPassword } = req.body;
+
+      const user = await User.findOne({ email });
+
+      if (
+        !user ||
+        user.resetOTP !== otp ||
+        !user.resetOTPExpire ||
+        user.resetOTPExpire < Date.now()
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "OTP inválido ou expirado.",
+        });
+      }
+
+      user.password = await bcrypt.hash(newPassword, 10);
+      user.resetOTP = null;
+      user.resetOTPExpire = null;
+
+      await user.save();
+
+      return res.json({
+        success: true,
+        message: "Password redefinida com sucesso!",
       });
     } catch (e) {
       return res.status(500).json({
@@ -174,9 +246,8 @@ module.exports = {
       }
 
       const decoded = verifyRefreshToken(refreshToken);
-
-      // Buscar user
       const user = await User.findById(decoded.id);
+
       if (!user)
         return res.status(401).json({
           success: false,
@@ -188,10 +259,7 @@ module.exports = {
 
       res.json({
         success: true,
-        data: {
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
-        },
+        data: { accessToken: newAccessToken, refreshToken: newRefreshToken },
       });
     } catch (e) {
       res.status(401).json({
