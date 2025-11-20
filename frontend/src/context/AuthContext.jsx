@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useCallback } from "react";
 import axios from "../services/api";
 import { useNavigate } from "react-router-dom";
 
@@ -6,77 +6,173 @@ export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
+
   const [user, setUser] = useState(null);
   const [tenantId, setTenantId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingUser, setLoadingUser] = useState(true);
 
-  // Carregar token do localStorage
-  useEffect(() => {
-    const storedToken = localStorage.getItem("accessToken");
-    const storedUser = localStorage.getItem("user");
-    const storedTenant = localStorage.getItem("tenantId");
+  // =========================================================
+  // Helper — Guarda no localStorage
+  // =========================================================
+  const saveSession = (data) => {
+    localStorage.setItem("accessToken", data.accessToken);
+    localStorage.setItem("refreshToken", data.refreshToken);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    localStorage.setItem("tenantId", data.tenantId);
 
-    if (storedToken && storedUser) {
-      setUser(JSON.parse(storedUser));
-      setTenantId(storedTenant);
-    }
+    setUser(data.user);
+    setTenantId(data.tenantId);
+  };
 
-    setLoading(false);
-  }, []);
-
+  // =========================================================
   // LOGIN
-  async function login(email, password) {
+  // =========================================================
+  const login = async (email, password) => {
     try {
       const res = await axios.post("/auth/login", { email, password });
 
       const { accessToken, refreshToken, user, tenantId } = res.data.data;
 
-      // guardar
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("tenantId", tenantId);
-
-      setUser(user);
-      setTenantId(tenantId);
+      saveSession({ accessToken, refreshToken, user, tenantId });
 
       navigate("/dashboard");
-    } catch (err) {
-      throw err.response?.data?.message || "Erro ao fazer login.";
+      return true;
+    } catch (error) {
+      return false;
     }
-  }
+  };
 
-  // REGISTO
-  async function register(payload) {
+  // =========================================================
+  // REGISTER
+  // =========================================================
+  const register = async (payload) => {
     try {
       const res = await axios.post("/auth/register", payload);
 
       const { accessToken, refreshToken, user, tenant } = res.data.data;
 
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("tenantId", tenant._id);
-
-      setUser(user);
-      setTenantId(tenant._id);
+      saveSession({
+        accessToken,
+        refreshToken,
+        user,
+        tenantId: tenant._id,
+      });
 
       navigate("/dashboard");
-    } catch (err) {
-      throw err.response?.data?.message || "Erro ao registar.";
+      return true;
+    } catch (error) {
+      return false;
     }
-  }
+  };
 
+  // =========================================================
   // LOGOUT
-  function logout() {
+  // =========================================================
+  const logout = useCallback(() => {
     localStorage.clear();
     setUser(null);
     setTenantId(null);
     navigate("/login");
-  }
+  }, [navigate]);
+
+  // =========================================================
+  // Refresh Token Automático
+  // =========================================================
+  const refreshAccessToken = useCallback(async () => {
+    const refreshToken = localStorage.getItem("refreshToken");
+
+    if (!refreshToken) return logout();
+
+    try {
+      const res = await axios.post("/auth/refresh", { refreshToken });
+      const { accessToken } = res.data;
+
+      localStorage.setItem("accessToken", accessToken);
+      return accessToken;
+
+    } catch (error) {
+      logout();
+    }
+  }, [logout]);
+
+  // =========================================================
+  // Axios Interceptor — adiciona token automaticamente
+  // =========================================================
+  useEffect(() => {
+    const interceptor = axios.interceptors.request.use(
+      async (config) => {
+        let token = localStorage.getItem("accessToken");
+
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    return () => axios.interceptors.request.eject(interceptor);
+  }, []);
+
+  // =========================================================
+  // Axios Interceptor — Repetir request dps de refresh
+  // =========================================================
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (res) => res,
+      async (error) => {
+        const originalRequest = error.config;
+
+        if (
+          error.response?.status === 401 &&
+          !originalRequest._retry
+        ) {
+          originalRequest._retry = true;
+
+          const newToken = await refreshAccessToken();
+          if (newToken) {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return axios(originalRequest);
+          }
+        }
+
+        return Promise.reject(error);
+      }
+    );
+
+    return () => axios.interceptors.response.eject(interceptor);
+  }, [refreshAccessToken]);
+
+  // =========================================================
+  // Carregar sessão ao iniciar
+  // =========================================================
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    const storedTenant = localStorage.getItem("tenantId");
+
+    if (storedUser && storedTenant) {
+      setUser(JSON.parse(storedUser));
+      setTenantId(storedTenant);
+    }
+
+    setLoadingUser(false);
+  }, []);
+
+  const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, tenantId, login, register, logout, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        tenantId,
+        login,
+        register,
+        logout,
+        loadingUser,
+        isAuthenticated,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
