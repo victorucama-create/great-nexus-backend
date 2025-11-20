@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "./layout/MainLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-// Páginas base
+// Páginas base do sistema
 import Dashboard from "./pages/dashboard/Dashboard";
 import Products from "./pages/products/Products";
 import Inventory from "./pages/inventory/Inventory";
@@ -26,12 +27,18 @@ export default function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* ROTAS PÚBLICAS */}
+        {/* 📌 ROTAS PÚBLICAS */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* ROTAS PROTEGIDAS COM LAYOUT (Sidebar + Topbar) */}
-        <Route element={<MainLayout />}>
+        {/* 📌 ROTAS PROTEGIDAS (Só entram autenticados) */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/products" element={<Products />} />
           <Route path="/inventory" element={<Inventory />} />
