@@ -2,9 +2,9 @@ const mongoose = require("mongoose");
 
 const UserSchema = new mongoose.Schema(
   {
-    // ============================
-    // DADOS BÁSICOS
-    // ============================
+    // ======================================================
+    // 🔹 DADOS BÁSICOS
+    // ======================================================
     name: {
       type: String,
       required: true,
@@ -22,7 +22,7 @@ const UserSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      select: false, // Segurança extra (não retorna por padrão)
+      select: false, // Segurança — nunca retorna por padrão
     },
 
     phone: {
@@ -35,27 +35,50 @@ const UserSchema = new mongoose.Schema(
       default: "",
     },
 
-    // ============================
-    // MULTI-TENANT
-    // ============================
+    // ======================================================
+    // 🔹 MULTI-TENANT
+    // ======================================================
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tenant",
       default: null,
     },
 
-    // ============================
-    // ROLE SYSTEM
-    // ============================
+    // ======================================================
+    // 🔹 ROLE SYSTEM
+    // super_admin → acesso total
+    // tenant_admin → dono da empresa
+    // manager → gestor
+    // staff → funcionário
+    // viewer → só leitura
+    // ======================================================
     role: {
       type: String,
       enum: ["super_admin", "tenant_admin", "manager", "staff", "viewer"],
       default: "staff",
     },
 
-    // ============================
-    // PASSWORD RESET (OTP)
-    // ============================
+    // ======================================================
+    // 🔹 EMAIL VERIFICATION (NOVO)
+    // ======================================================
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    emailVerificationToken: {
+      type: String,
+      default: null,
+    },
+
+    emailVerificationExpires: {
+      type: Date,
+      default: null,
+    },
+
+    // ======================================================
+    // 🔹 PASSWORD RESET (OTP)
+    // ======================================================
     resetOTP: {
       type: String,
       default: null,
@@ -66,9 +89,9 @@ const UserSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ============================
-    // STATUS & SEGURANÇA
-    // ============================
+    // ======================================================
+    // 🔹 SEGURANÇA & STATUS
+    // ======================================================
     isActive: {
       type: Boolean,
       default: true,
@@ -84,7 +107,6 @@ const UserSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Guarda histórico de IPs para auditoria (opcional)
     lastLoginIP: {
       type: String,
       default: null,
@@ -93,6 +115,20 @@ const UserSchema = new mongoose.Schema(
     userAgent: {
       type: String,
       default: null,
+    },
+
+    // ======================================================
+    // 🔹 FUTURO: AUTENTICAÇÃO DE 2 FATORES (se quiser ativar)
+    // ======================================================
+    mfaEnabled: {
+      type: Boolean,
+      default: false,
+    },
+
+    mfaSecret: {
+      type: String,
+      default: null,
+      select: false,
     },
   },
 
