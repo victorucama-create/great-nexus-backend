@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Bem-vindo(a) a {{APP_NAME}}</title>
+  <style>
+    body{font-family:Inter,system-ui,-apple-system,Roboto,Arial;background:#f6f8fb;margin:0;color:#0b1220}
+    .card{max-width:720px;margin:36px auto;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.07);overflow:hidden}
+    .hdr{background:linear-gradient(90deg,#6366f1,#06b6d4);color:#fff;padding:28px;text-align:center}
+    .body{padding:28px;line-height:1.7}
+    .btn{display:inline-block;padding:12px 18px;background:#06b6d4;color:#fff;border-radius:8px;text-decoration:none;font-weight:600}
+    .muted{color:#64748b;font-size:13px}
+    .footer{padding:18px;background:#fafafa;text-align:center;color:#94a3b8}
+    @media(max-width:600px){.card{margin:16px}}
+  </style>
+</head>
+<body>
+  <div class="card" role="article" aria-label="Welcome to app">
+    <div class="hdr">
+      <div style="font-weight:800;font-size:18px">{{APP_NAME}}</div>
+      <div style="opacity:0.95;margin-top:6px">Ecossistema Empresarial Inteligente</div>
+    </div>
+    <div class="body">
+      <h2>Bem-vindo(a), {{USER_NAME}}!</h2>
+      <p>Obrigado por escolher o {{APP_NAME}}. A partir de agora pode gerir inventário, vendas, finanças e muito mais — tudo a partir de um só lugar.</p>
+
+      <p style="margin:18px 0;text-align:center">
+        <a class="btn" href="{{DASHBOARD_URL}}" target="_blank" rel="noopener noreferrer">Ir para o Painel</a>
+      </p>
+
+      <p class="muted">Se precisar de ajuda, aceda ao centro de ajuda ou contacte: <a href="mailto:{{SUPPORT_EMAIL}}">{{SUPPORT_EMAIL}}</a></p>
+
+      <hr style="border:none;border-top:1px solid #eef2ff;margin:20px 0" />
+
+      <h4>Primeiros passos recomendados</h4>
+      <ol class="muted">
+        <li>Confirme os dados da sua empresa.</li>
+        <li>Configure o plano e meios de pagamento.</li>
+        <li>Adicione os primeiros produtos e fornecedores.</li>
+      </ol>
+    </div>
+    <div class="footer">© {{YEAR}} {{APP_NAME}} — Todos os direitos reservados</div>
+  </div>
+</body>
+</html>
