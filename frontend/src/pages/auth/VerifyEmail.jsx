@@ -1,112 +1,62 @@
-const nodemailer = require("nodemailer");
-const fs = require("fs");
-const path = require("path");
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import api from "../../services/api";
+import Lottie from "lottie-react";
+import successAnimation from "../../assets/lottie/success.json";
 
-// ============================
-// Helper — Load HTML Template
-// ============================
-function loadTemplate(templateName, vars = {}) {
-  const filePath = path.join(__dirname, "..", "templates", `${templateName}.html`);
-  let html = fs.readFileSync(filePath, "utf8");
+export default function VerifyEmail() {
+  const { token } = useParams();
+  const [status, setStatus] = useState("loading");
 
-  Object.keys(vars).forEach((key) => {
-    html = html.replace(new RegExp(`{{${key}}}`, "g"), vars[key]);
-  });
+  useEffect(() => {
+    async function verify() {
+      try {
+        await api.get(`/auth/verify/${token}`);
+        setStatus("success");
+      } catch {
+        setStatus("error");
+      }
+    }
+    verify();
+  }, [token]);
 
-  return html;
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-6">
+      <div className="bg-white rounded-xl shadow-xl p-10 max-w-md w-full text-center">
+
+        {status === "loading" && <p>A validar email...</p>}
+
+        {status === "success" && (
+          <>
+            <Lottie animationData={successAnimation} style={{ height: 160 }} />
+            <h2 className="text-xl font-bold">Email verificado!</h2>
+            <p className="text-gray-600 mt-2">Agora já pode iniciar sessão.</p>
+
+            <Link
+              to="/login"
+              className="mt-4 block bg-indigo-600 text-white py-2 rounded-lg"
+            >
+              Ir para Login
+            </Link>
+          </>
+        )}
+
+        {status === "error" && (
+          <>
+            <h2 className="text-xl font-bold text-red-600">Token inválido</h2>
+            <p className="text-gray-600 mt-2">
+              O link pode ter expirado. Solicite novamente.
+            </p>
+
+            <Link
+              to="/resend-verification"
+              className="mt-4 block bg-indigo-600 text-white py-2 rounded-lg"
+            >
+              Reenviar verificação
+            </Link>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
-
-// ============================
-// Transporter
-// ============================
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: Number(process.env.EMAIL_SECURE) === 1,
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-});
-
-// ============================
-// SEND FUNCTIONS
-// ============================
-
-async function sendVerificationEmail(to, token) {
-  const VERIFY_URL = `${process.env.FRONTEND_URL}/verify-email/${token}`;
-
-  return transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject: "Confirmação de Email — Great Nexus",
-    html: loadTemplate("welcome", {
-      VERIFY_URL,
-      APP_NAME: "Great Nexus",
-      YEAR: new Date().getFullYear(),
-    }),
-  });
-}
-
-async function sendForgotPasswordEmail(to, otp, name) {
-  return transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject: "Código de Recuperação — Great Nexus",
-    html: loadTemplate("forgot-password", {
-      APP_NAME: "Great Nexus",
-      USER_NAME: name,
-      RESET_URL: "",
-      EXPIRE_HUMAN: "15 minutos",
-      SUPPORT_EMAIL: "support@greatnexus.com",
-      YEAR: new Date().getFullYear(),
-    }),
-  });
-}
-
-async function sendPasswordResetSuccessEmail(to, name) {
-  return transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject: "Password Alterada — Great Nexus",
-    html: loadTemplate("reset-password", {
-      APP_NAME: "Great Nexus",
-      USER_NAME: name,
-      SUPPORT_EMAIL: "support@greatnexus.com",
-      YEAR: new Date().getFullYear(),
-    }),
-  });
-}
-
-async function sendWelcomeEmail(to, name) {
-  return transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject: "Bem-vindo ao Great Nexus!",
-    html: loadTemplate("welcome", {
-      APP_NAME: "Great Nexus",
-      USER_NAME: name,
-      DASHBOARD_URL: `${process.env.FRONTEND_URL}/dashboard`,
-      SUPPORT_EMAIL: "support@greatnexus.com",
-      YEAR: new Date().getFullYear(),
-    }),
-  });
-}
-
-async function sendSuspiciousLoginEmail(to, vars) {
-  return transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject: "Aviso: Tentativa de acesso suspeita",
-    html: loadTemplate("login-suspect", {
-      ...vars,
-      APP_NAME: "Great Nexus",
-      YEAR: new Date().getFullYear(),
-    }),
-  });
-}
-
-module.exports = {
-  sendVerificationEmail,
-  sendForgotPasswordEmail,
-  sendPasswordResetSuccessEmail,
-  sendSuspiciousLoginEmail,
-  sendWelcomeEmail,
-};
