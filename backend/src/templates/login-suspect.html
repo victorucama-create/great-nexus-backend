@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Login Suspeito — {{APP_NAME}}</title>
+  <style>
+    body{font-family:Inter,system-ui,Roboto,Arial;background:#fff;margin:0;color:#0f172a}
+    .wrap{max-width:640px;margin:24px auto;border-radius:12px;padding:20px;border:1px solid #eef2ff;box-shadow:0 6px 20px rgba(2,6,23,0.04)}
+    .hdr{display:flex;align-items:center;gap:12px}
+    .badge{background:#fef3c7;color:#92400e;padding:6px 10px;border-radius:8px;font-weight:700}
+    .muted{color:#475569;font-size:13px}
+    .btn{display:inline-block;padding:10px 14px;background:#ef4444;color:#fff;border-radius:8px;text-decoration:none;font-weight:600}
+    @media(max-width:600px){.wrap{margin:12px}}
+  </style>
+</head>
+<body>
+  <div class="wrap" role="alert" aria-label="Login suspeito">
+    <div class="hdr">
+      <div style="font-size:16px;font-weight:700">{{APP_NAME}}</div>
+      <div class="muted" style="margin-left:auto">{{YEAR}}</div>
+    </div>
+
+    <div style="margin-top:14px">
+      <p>Olá {{USER_NAME}}, detectámos uma tentativa de acesso à sua conta que pode ser suspeita.</p>
+
+      <p class="muted">Detalhes do evento:</p>
+      <ul class="muted">
+        <li>IP: <strong>{{IP_ADDRESS}}</strong></li>
+        <li>Localização aproximada: <strong>{{IP_GEO}}</strong></li>
+        <li>Data/Hora: <strong>{{EVENT_TIME}}</strong></li>
+        <li>Dispositivo: <strong>{{USER_AGENT}}</strong></li>
+      </ul>
+
+      <p style="margin-top:12px">Se foi você, não é necessária ação. Se suspeita que a sua conta foi comprometida:</p>
+      <ol class="muted">
+        <li>Altere imediatamente a sua palavra-passe.</li>
+        <li>Ative autenticação em dois fatores (MFA).</li>
+        <li>Contacte o suporte: <a href="mailto:{{SUPPORT_EMAIL}}">{{SUPPORT_EMAIL}}</a></li>
+      </ol>
+
+      <p style="margin-top:14px; text-align:center">
+        <a class="btn" href="{{SECURITY_URL}}" target="_blank" rel="noopener noreferrer">Revisar Sessões e Segurança</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>
