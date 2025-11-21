@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nova Conta Criada — {{APP_NAME}}</title>
+  <style>
+    body{font-family:Inter,system-ui,Roboto,Arial;background:#f6f8fb;margin:0;color:#0b1220}
+    .card{max-width:640px;margin:36px auto;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.06);overflow:hidden}
+    .hdr{background:linear-gradient(90deg,#0ea5e9,#7c3aed);color:#fff;padding:22px 28px;text-align:center}
+    .body{padding:22px 28px;line-height:1.6}
+    .muted{color:#6b7280;font-size:13px}
+    .footer{padding:16px 28px;background:#fafafa;text-align:center;color:#94a3b8}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="hdr">
+      <div style="font-weight:700">{{APP_NAME}}</div>
+      <div style="opacity:0.9;margin-top:6px">Notificação de nova conta</div>
+    </div>
+
+    <div class="body">
+      <h3>Nova conta registada</h3>
+      <p>Uma nova conta foi criada no {{APP_NAME}} com os seguintes detalhes:</p>
+
+      <table style="width:100%; margin-top:8px; border-collapse:collapse;">
+        <tr><td style="padding:6px 0; width:140px; color:#374151; font-weight:600">Empresa:</td><td>{{COMPANY_NAME}}</td></tr>
+        <tr><td style="padding:6px 0; color:#374151; font-weight:600">Admin:</td><td>{{USER_NAME}} ({{USER_EMAIL}})</td></tr>
+        <tr><td style="padding:6px 0; color:#374151; font-weight:600">País:</td><td>{{COUNTRY}}</td></tr>
+        <tr><td style="padding:6px 0; color:#374151; font-weight:600">Plano:</td><td>{{PLAN}}</td></tr>
+      </table>
+
+      <p class="muted" style="margin-top:14px">Pode rever a conta no painel de administração: <a href="{{ADMIN_URL}}">{{ADMIN_URL}}</a></p>
+    </div>
+
+    <div class="footer">© {{YEAR}} {{APP_NAME}}</div>
+  </div>
+</body>
+</html>
