@@ -1,26 +1,21 @@
-// backend/src/routes/auth.routes.js
 const express = require("express");
 const router = express.Router();
-const authCtrl = require("../controllers/auth.controller");
+const auth = require("../controllers/auth.controller");
 
-// Public - auth
-router.post("/register", authCtrl.register);
-router.post("/login", authCtrl.login);
+// AUTH
+router.post("/register", auth.register);
+router.get("/verify/:token", auth.verifyEmail);
+router.post("/resend-verification", auth.resendVerification);
 
-// Forgot / Reset
-router.post("/auth/forgot-password", authCtrl.forgotPassword); // se implementado no controller
-router.post("/auth/reset-password", authCtrl.resetPassword);   // se implementado no controller
+// LOGIN / LOGOUT
+router.post("/login", auth.login);
+router.post("/logout", auth.logout);
 
-// Verify email (GET by token) - /api/v1/auth/verify-email/:token
-router.get("/verify-email/:token", authCtrl.verifyEmail);
+// PASSWORD RESET
+router.post("/forgot-password", auth.forgotPassword);
+router.post("/reset-password", auth.resetPassword);
 
-// Resend verification
-router.post("/resend-verification", authCtrl.resendVerification);
-
-// Refresh token
-router.post("/refresh", authCtrl.refreshToken);
-
-// Logout (opcional)
-router.post("/logout", authCtrl.logout);
+// TOKENS
+router.post("/refresh", auth.refreshToken);
 
 module.exports = router;
