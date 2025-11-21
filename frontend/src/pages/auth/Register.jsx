@@ -1,186 +1,274 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
+// frontend/src/pages/auth/Register.jsx
+
+import { useState, useContext, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import Lottie from "lottie-react";
+import ReCAPTCHA from "react-google-recaptcha";
+import { AuthContext } from "../../context/AuthContext";
+
+// Assets (no seu ambiente de build estas URLs serão tratadas / servidas)
+import successAnimation from "sandbox:/mnt/data/email_lottie_premium.json";
+import heroImage from "sandbox:/mnt/data/A_digital_image_displays_mockups_of_a_software_int.png";
 
 export default function Register() {
-  const { register } = useAuth();
+  const navigate = useNavigate();
+  const { register } = useContext(AuthContext);
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    companyName: "",
-    country: "MZ",
-    currency: "MZN",
-  });
+  // Form state
+  const [companyName, setCompanyName] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [country, setCountry] = useState("MZ");
+  const [currency, setCurrency] = useState("MZN");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
 
+  // UI state
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const recaptchaRef = useRef(null);
+  const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
+
+  // Simple password strength check
+  function passwordStrength(pw) {
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[\W]/.test(pw)) score++;
+    return score; // 0..4
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setLoading(true);
     setErrorMsg("");
 
-    const success = await register(form);
+    // Basic validations
+    if (!companyName.trim() || !name.trim() || !email.trim() || !password || !confirm) {
+      setErrorMsg("Por favor preencha todos os campos obrigatórios.");
+      return;
+    }
 
-    if (!success) {
-      setErrorMsg("Erro ao criar conta. Verifique os dados.");
+    if (password !== confirm) {
+      setErrorMsg("As passwords não coincidem.");
+      return;
+    }
+
+    if (password.length < 8 || passwordStrength(password) < 2) {
+      setErrorMsg("A password deve ter pelo menos 8 caracteres e ser razoavelmente forte.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // reCAPTCHA invisible (se configurado)
+      let captchaToken = null;
+      if (RECAPTCHA_SITE_KEY && recaptchaRef.current) {
+        try {
+          captchaToken = await recaptchaRef.current.executeAsync();
+          recaptchaRef.current.reset();
+        } catch (rcErr) {
+          // não bloquear se recaptcha falhar; continuar sem token
+          console.warn("reCAPTCHA falhou:", rcErr);
+        }
+      }
+
+      const payload = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        companyName: companyName.trim(),
+        country,
+        currency,
+        phone: phone.trim(),
+        captchaToken, // opcional para backend validar
+      };
+
+      // Chama o AuthContext.register (que usa api.js)
+      await register(payload);
+
+      // mostrar animação de sucesso leve e redirecionar
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigate("/dashboard");
+      }, 1100);
+    } catch (err) {
+      // register deve lançar mensagem de erro amigável
+      setErrorMsg(err?.toString?.() || err?.message || "Erro ao registar a conta.");
+    } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-800 px-4">
-      
-      <div className="bg-white shadow-2xl rounded-2xl w-full max-w-4xl overflow-hidden flex">
-        
-        {/* LEFT SIDE — FORM */}
-        <div className="w-full md:w-1/2 p-10">
-          
-          <h2 className="text-3xl font-bold text-gray-900">
-            Criar Conta
-          </h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6">
+      <div className="w-full max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
 
-          <p className="text-gray-500 mt-2 mb-6">
-            Bem-vindo ao <strong>Great Nexus</strong> — o ecossistema empresarial inteligente.
+        {/* LEFT: Form */}
+        <div className="p-10 md:p-14 lg:p-16">
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+            Criar Conta — Great Nexus
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            Registe a sua empresa e comece a transformar a gestão do seu negócio.
           </p>
 
           {errorMsg && (
-            <div className="bg-red-100 text-red-600 px-4 py-2 rounded mb-4">
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded" role="alert" aria-live="assertive">
               {errorMsg}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4" aria-describedby="register-help">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome da Empresa *</label>
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  required
+                  placeholder="Ex: Great Pollo Lda"
+                  className="mt-1 w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
 
-            {/* Nome */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">Nome completo</label>
-              <input
-                type="text"
-                name="name"
-                className="w-full mt-1 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                placeholder="Ex: João Manuel"
-                value={form.name}
-                onChange={handleChange}
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">País</label>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="mt-1 w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="MZ">Moçambique</option>
+                  <option value="AO">Angola</option>
+                  <option value="PT">Portugal</option>
+                  <option value="BR">Brasil</option>
+                </select>
+              </div>
             </div>
 
-            {/* Email */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">Email</label>
-              <input
-                type="email"
-                name="email"
-                className="w-full mt-1 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500"
-                placeholder="empresa@email.com"
-                value={form.email}
-                onChange={handleChange}
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Seu Nome *</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  placeholder="Ex: João Silva"
+                  className="mt-1 w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Moeda</label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="mt-1 w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="MZN">MZN - Metical</option>
+                  <option value="USD">USD - Dólar</option>
+                  <option value="EUR">EUR - Euro</option>
+                </select>
+              </div>
             </div>
 
-            {/* Password */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">Password</label>
-              <input
-                type="password"
-                name="password"
-                className="w-full mt-1 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500"
-                placeholder="********"
-                value={form.password}
-                onChange={handleChange}
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email *</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="seu@empresa.com"
+                  className="mt-1 w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Telefone (opcional)</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+258 84 000 0000"
+                  className="mt-1 w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
             </div>
 
-            {/* Company */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">Nome da Empresa</label>
-              <input
-                type="text"
-                name="companyName"
-                className="w-full mt-1 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500"
-                placeholder="Ex: Great Pollo"
-                value={form.companyName}
-                onChange={handleChange}
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password *</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="Mínimo 8 caracteres"
+                  className="mt-1 w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirmar Password *</label>
+                <input
+                  type="password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  required
+                  placeholder="Repita a password"
+                  className="mt-1 w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
             </div>
 
-            {/* País */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">País</label>
-              <select
-                name="country"
-                value={form.country}
-                onChange={handleChange}
-                className="w-full mt-1 p-3 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500"
+            {/* reCAPTCHA invisível */}
+            {RECAPTCHA_SITE_KEY && (
+              <div style={{ display: "none" }}>
+                <ReCAPTCHA sitekey={RECAPTCHA_SITE_KEY} size="invisible" ref={recaptchaRef} />
+              </div>
+            )}
+
+            <div className="mt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition disabled:opacity-60"
+                aria-busy={loading}
               >
-                <option value="MZ">Moçambique (MZ)</option>
-                <option value="PT">Portugal (PT)</option>
-                <option value="BR">Brasil (BR)</option>
-                <option value="ZA">África do Sul (ZA)</option>
-              </select>
+                {loading ? "A registar..." : "Criar Conta"}
+              </button>
             </div>
 
-            {/* Moeda */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">Moeda</label>
-              <select
-                name="currency"
-                value={form.currency}
-                onChange={handleChange}
-                className="w-full mt-1 p-3 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="MZN">Metical (MZN)</option>
-                <option value="EUR">Euro (EUR)</option>
-                <option value="USD">Dólar (USD)</option>
-                <option value="ZAR">Rand (ZAR)</option>
-              </select>
-            </div>
-
-            {/* Botão */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold p-3 rounded-lg transition shadow-lg"
-            >
-              {loading ? "Criando conta..." : "Criar Conta"}
-            </button>
-
-            {/* Login Link */}
-            <p className="text-center text-gray-500 text-sm">
-              Já tem conta?{" "}
-              <Link to="/login" className="text-indigo-600 font-semibold hover:underline">
-                Entrar
-              </Link>
+            <p id="register-help" className="text-sm text-gray-600 dark:text-gray-300 mt-3">
+              Ao criar a conta aceita os <Link className="underline">Termos</Link> e a <Link className="underline">Política de Privacidade</Link>.
             </p>
-
           </form>
         </div>
 
-        {/* RIGHT SIDE — BRANDING */}
-        <div className="hidden md:flex w-1/2 bg-indigo-700 text-white flex-col justify-center items-center p-10 text-center">
-          <h1 className="text-4xl font-extrabold mb-4">Great Nexus</h1>
-          <p className="text-lg opacity-90">
-            Gestão empresarial inteligente.  
-            ERP • MRP • CRM • HR • B2B • Logística • Mola  
-          </p>
-          <div className="mt-8">
-            <img
-              src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png"
-              className="w-40 opacity-90 drop-shadow-lg"
-            />
-          </div>
+        {/* RIGHT: Hero / Lottie */}
+        <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-indigo-700 via-blue-600 to-indigo-800 p-8">
+          {!showSuccess ? (
+            <div className="text-center text-white px-4 max-w-xs">
+              <h2 className="text-2xl font-bold mb-2">Comece hoje</h2>
+              <p className="opacity-90 mb-6">ERP, MRP, CRM e Fintech integrados para PMEs.</p>
+              <img src={heroImage} alt="Great Nexus" className="mx-auto rounded shadow-lg" />
+            </div>
+          ) : (
+            <div className="w-48">
+              <Lottie animationData={successAnimation} loop={false} />
+            </div>
+          )}
         </div>
-
       </div>
     </div>
   );
