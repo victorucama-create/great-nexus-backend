@@ -1,34 +1,26 @@
+// backend/src/routes/auth.routes.js
 const express = require("express");
 const router = express.Router();
 const authCtrl = require("../controllers/auth.controller");
 
-// =========================================================
-// AUTH - ROTAS PÚBLICAS
-// =========================================================
-
-// Criar conta (Tenant + Admin)
+// Public - auth
 router.post("/register", authCtrl.register);
-
-// Login (gera access + refresh token)
 router.post("/login", authCtrl.login);
 
-// Recuperar password (envia OTP para email)
-router.post("/forgot-password", authCtrl.forgotPassword);
+// Forgot / Reset
+router.post("/auth/forgot-password", authCtrl.forgotPassword); // se implementado no controller
+router.post("/auth/reset-password", authCtrl.resetPassword);   // se implementado no controller
 
-// Reset password com OTP
-router.post("/reset-password", authCtrl.resetPassword);
+// Verify email (GET by token) - /api/v1/auth/verify-email/:token
+router.get("/verify-email/:token", authCtrl.verifyEmail);
+
+// Resend verification
+router.post("/resend-verification", authCtrl.resendVerification);
 
 // Refresh token
-router.post("/refresh", authCtrl.refresh);
+router.post("/refresh", authCtrl.refreshToken);
 
-// =========================================================
-// ROTAS PROTEGIDAS
-// =========================================================
-
-// Validar token (apenas para manter sessão ativa)
-router.get("/validate", authCtrl.validateToken);
-
-// Logout (opcional, mas mantido por estrutura)
+// Logout (opcional)
 router.post("/logout", authCtrl.logout);
 
 module.exports = router;
