@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8" /></head>
+<body style="background:#fff3cd;padding:40px;font-family:Arial;">
+  <div style="max-width:600px;margin:auto;background:white;padding:30px;border-radius:12px;">
+    <h2 style="color:#b45309;">Alerta de Login Suspeito</h2>
+
+    <p>Olá {{name}},</p>
+
+    <p>Detectamos um login que parece diferente do habitual:</p>
+
+    <ul>
+      <li><strong>IP:</strong> {{ip}}</li>
+      <li><strong>Localização:</strong> {{location}}</li>
+      <li><strong>Browser:</strong> {{agent}}</li>
+    </ul>
+
+    <p>Se não foi você, recomendamos trocar sua password imediatamente.</p>
+
+    <a href="{{resetUrl}}" style="
+      background:#b45309;
+      color:white;
+      padding:14px 26px;
+      border-radius:6px;
+      text-decoration:none;
+      font-weight:bold;">
+      Alterar Password
+    </a>
+  </div>
+</body>
+</html>
