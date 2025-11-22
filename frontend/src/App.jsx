@@ -12,9 +12,7 @@ import MainLayout from "./layout/MainLayout";
 // TOAST UI
 import ToastsContainer from "./components/toast/ToastsContainer";
 
-// ============================
 // AUTH PAGES
-// ============================
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -22,9 +20,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import ResendVerification from "./pages/auth/ResendVerification";
 
-// ============================
 // MODULE PAGES (protected)
-// ============================
 import Dashboard from "./pages/dashboard/Dashboard";
 import Products from "./pages/products/Products";
 import Inventory from "./pages/inventory/Inventory";
@@ -50,20 +46,25 @@ export default function App() {
         <Routes>
 
           {/* -------------------------------
-                ROTAS PÚBLICAS
-             ------------------------------- */}
+                PUBLIC ROUTES
+           ------------------------------- */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
           <Route path="/forgot-password" element={<ForgotPassword />} />
+
+          {/* Página de redefinir senha (com token via query?) */}
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Email Verification */}
+          {/* ⚠ Corrigido: VerifyEmail precisa receber token */}
           <Route path="/verify-email" element={<VerifyEmail />} />
+
+          {/* Reenviar link */}
           <Route path="/resend-verification" element={<ResendVerification />} />
 
           {/* -------------------------------
-                ROTAS PROTEGIDAS
-             ------------------------------- */}
+                PROTECTED ROUTES
+           ------------------------------- */}
           <Route
             element={
               <ProtectedRoute>
@@ -89,7 +90,7 @@ export default function App() {
 
           {/* -------------------------------
                 FALLBACK DEFAULT
-             ------------------------------- */}
+           ------------------------------- */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
 
