@@ -11,21 +11,43 @@ export default function ResendVerification() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
   const { pushToast } = useToast();
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!email) return pushToast({ type: "error", title: "Erro", message: "Insira o seu email." });
+
+    if (!email) {
+      pushToast({
+        type: "error",
+        title: "Email necessário",
+        message: "Digite o email usado na criação da conta.",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
       const res = await api.post("/auth/resend-verification", { email });
-      pushToast({ type: "success", title: "Enviado", message: res.data?.message || "Verifique o seu email." });
+
+      pushToast({
+        type: "success",
+        title: "Enviado!",
+        message: res.data?.message || "Verifique o seu email para o novo link.",
+      });
+
       setSent(true);
     } catch (err) {
-      const msg = err?.response?.data?.message || "Erro ao reenviar.";
-      pushToast({ type: "error", title: "Erro", message: msg });
+      const msg =
+        err?.response?.data?.message ||
+        "Erro ao reenviar o link de verificação.";
+
+      pushToast({
+        type: "error",
+        title: "Erro",
+        message: msg,
+      });
     } finally {
       setLoading(false);
     }
@@ -33,49 +55,61 @@ export default function ResendVerification() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-md p-6 text-center">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 text-center animate-fade-in">
+        
         {!sent ? (
           <>
-            <h2 className="text-2xl font-bold mb-2">Reenviar verificação</h2>
-            <p className="text-gray-600 mb-4">Insira o email que usou para registar e enviaremos um novo link.</p>
+            <Lottie animationData={emailAnimation} style={{ height: 150 }} />
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <h2 className="text-2xl font-bold mt-2">Reenviar Verificação</h2>
+            <p className="text-gray-600 mt-2">
+              Insira o email usado na sua conta e enviaremos um novo link.
+            </p>
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <input
                 type="email"
-                aria-label="Email"
-                placeholder="seu@email.com"
+                placeholder="email@exemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-gray-100 border border-gray-200"
+                className="w-full px-4 py-3 rounded-lg bg-gray-100 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
 
               <button
                 type="submit"
-                className="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold disabled:opacity-60"
                 disabled={loading}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 transition text-white rounded-lg font-semibold disabled:opacity-60"
               >
-                {loading ? "A enviar..." : "Reenviar link"}
+                {loading ? "A enviar..." : "Reenviar Link"}
               </button>
             </form>
 
-            <div className="mt-4 text-sm text-gray-600">
-              <Link to="/login" className="text-indigo-600 hover:underline">Voltar ao login</Link>
-            </div>
+            <p className="mt-4 text-sm text-gray-600">
+              <Link to="/login" className="text-indigo-600 hover:underline">
+                Voltar ao login
+              </Link>
+            </p>
           </>
         ) : (
-          <div>
-            <Lottie animationData={emailAnimation} style={{ height: 160 }} />
-            <h3 className="text-lg font-bold mt-2">Verificação reenviada</h3>
-            <p className="text-gray-600 mt-1">Verifique a sua caixa de entrada.</p>
+          <>
+            <Lottie animationData={successAnimation} style={{ height: 160 }} />
+
+            <h3 className="text-xl font-bold mt-3 text-green-600">
+              Verificação enviada!
+            </h3>
+
+            <p className="text-gray-600 mt-1">
+              Por favor verifique a sua caixa de entrada.
+            </p>
 
             <button
               onClick={() => navigate("/login")}
-              className="mt-4 inline-block bg-indigo-600 text-white px-4 py-2 rounded"
+              className="mt-6 bg-indigo-600 hover:bg-indigo-700 transition text-white px-6 py-3 rounded-lg"
             >
               Ir para Login
             </button>
-          </div>
+          </>
         )}
       </div>
     </div>
