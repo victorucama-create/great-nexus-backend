@@ -1,32 +1,18 @@
+// backend/src/utils/sendEmail.js
 const nodemailer = require("nodemailer");
 const fs = require("fs");
 const path = require("path");
 
-// ============================================================
-// LOAD EMAIL TEMPLATE (HTML)
-// ============================================================
 function loadTemplate(templateName, vars = {}) {
-  const filePath = path.join(
-    __dirname,
-    "..",
-    "emails",
-    "templates",
-    `${templateName}.html`
-  );
-
+  const filePath = path.join(__dirname, "..", "emails", "templates", `${templateName}.html`);
   let html = fs.readFileSync(filePath, "utf8");
-
   Object.keys(vars).forEach((key) => {
     const regex = new RegExp(`{{${key}}}`, "g");
-    html = html.replace(regex, vars[key]);
+    html = html.replace(regex, vars[key] ?? "");
   });
-
   return html;
 }
 
-// ============================================================
-// NODEMAILER TRANSPORT
-// ============================================================
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: process.env.EMAIL_PORT,
@@ -37,113 +23,84 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ============================================================
-// SEND: VERIFY EMAIL
-// ============================================================
-async function sendVerificationEmail(to, token) {
+async function sendVerificationEmail(to, token, name = "") {
   const VERIFY_URL = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
-
   const html = loadTemplate("verify-email", {
     VERIFY_URL,
-    APP_NAME: "Great Nexus",
+    APP_NAME: process.env.APP_NAME || "Great Nexus",
+    NAME: name,
     YEAR: new Date().getFullYear(),
   });
-
   return transporter.sendMail({
-    from: `"Great Nexus" <${process.env.EMAIL_FROM}>`,
+    from: `"${process.env.APP_NAME || "Great Nexus"}" <${process.env.EMAIL_FROM}>`,
     to,
-    subject: "Confirme o seu email — Great Nexus",
+    subject: "Confirme seu email — " + (process.env.APP_NAME || "Great Nexus"),
     html,
   });
 }
 
-// ============================================================
-// SEND: FORGOT PASSWORD (OTP)
-// ============================================================
-async function sendForgotPasswordEmail(to, otp, name) {
+async function sendForgotPasswordEmail(to, otp, name = "") {
   const html = loadTemplate("forgot-password", {
-    APP_NAME: "Great Nexus",
-    USER_NAME: name || "",
     OTP_CODE: otp,
-    EXPIRE_HUMAN: "15 minutos",
-    SUPPORT_EMAIL: "support@greatnexus.com",
+    USER_NAME: name,
+    APP_NAME: process.env.APP_NAME || "Great Nexus",
     YEAR: new Date().getFullYear(),
   });
-
   return transporter.sendMail({
-    from: `"Great Nexus" <${process.env.EMAIL_FROM}>`,
+    from: `"${process.env.APP_NAME || "Great Nexus"}" <${process.env.EMAIL_FROM}>`,
     to,
-    subject: "Código de recuperação de password",
+    subject: "Código de recuperação — " + (process.env.APP_NAME || "Great Nexus"),
     html,
   });
 }
 
-// ============================================================
-// SEND: PASSWORD RESET SUCCESS
-// ============================================================
-async function sendPasswordResetSuccessEmail(to, name) {
+async function sendPasswordResetSuccessEmail(to, name = "") {
   const html = loadTemplate("reset-password", {
-    APP_NAME: "Great Nexus",
-    USER_NAME: name || "",
-    SUPPORT_EMAIL: "support@greatnexus.com",
+    USER_NAME: name,
+    APP_NAME: process.env.APP_NAME || "Great Nexus",
     YEAR: new Date().getFullYear(),
   });
-
   return transporter.sendMail({
-    from: `"Great Nexus" <${process.env.EMAIL_FROM}>`,
+    from: `"${process.env.APP_NAME || "Great Nexus"}" <${process.env.EMAIL_FROM}>`,
     to,
-    subject: "Password alterada com sucesso",
+    subject: "Password alterada — " + (process.env.APP_NAME || "Great Nexus"),
     html,
   });
 }
 
-// ============================================================
-// SEND: WELCOME EMAIL (após registro)
-// ============================================================
-async function sendWelcomeEmail(to, name) {
-  const DASHBOARD_URL = `${process.env.FRONTEND_URL}/dashboard`;
-
+async function sendWelcomeEmail(to, name = "") {
   const html = loadTemplate("welcome", {
-    APP_NAME: "Great Nexus",
-    USER_NAME: name || "",
-    DASHBOARD_URL,
-    SUPPORT_EMAIL: "support@greatnexus.com",
+    USER_NAME: name,
+    DASHBOARD_URL: `${process.env.FRONTEND_URL}/dashboard`,
+    APP_NAME: process.env.APP_NAME || "Great Nexus",
     YEAR: new Date().getFullYear(),
   });
-
   return transporter.sendMail({
-    from: `"Great Nexus" <${process.env.EMAIL_FROM}>`,
+    from: `"${process.env.APP_NAME || "Great Nexus"}" <${process.env.EMAIL_FROM}>`,
     to,
-    subject: "Bem-vindo ao Great Nexus!",
+    subject: "Bem-vindo ao " + (process.env.APP_NAME || "Great Nexus"),
     html,
   });
 }
 
-// ============================================================
-// SEND: SUSPICIOUS LOGIN
-// ============================================================
-async function sendSuspiciousLoginEmail(to, vars) {
+async function sendSuspiciousLoginEmail(to, vars = {}) {
   const html = loadTemplate("suspicious-login", {
     ...vars,
-    APP_NAME: "Great Nexus",
+    APP_NAME: process.env.APP_NAME || "Great Nexus",
     YEAR: new Date().getFullYear(),
   });
-
   return transporter.sendMail({
-    from: `"Great Nexus" <${process.env.EMAIL_FROM}>`,
+    from: `"${process.env.APP_NAME || "Great Nexus"}" <${process.env.EMAIL_FROM}>`,
     to,
-    subject: "Alerta de atividade suspeita",
+    subject: "Alerta de acesso suspeito — " + (process.env.APP_NAME || "Great Nexus"),
     html,
   });
 }
 
-// ============================================================
-// EXPORTS
-// ============================================================
 module.exports = {
   sendVerificationEmail,
   sendForgotPasswordEmail,
   sendPasswordResetSuccessEmail,
-  sendSuspiciousLoginEmail,
   sendWelcomeEmail,
+  sendSuspiciousLoginEmail,
 };
