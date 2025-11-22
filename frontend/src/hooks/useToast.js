@@ -1,25 +1,32 @@
-// frontend/src/hooks/useToast.js
-import { useState, useCallback } from "react";
+import { useContext, createContext, useState } from "react";
+import ToastManager from "../components/ui/ToastManager";
 
-let idCounter = 1;
+const ToastContext = createContext();
 
-export default function useToastProvider() {
+export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
-  const pushToast = useCallback((t) => {
-    const id = idCounter++;
-    const toast = { id, ...t };
-    setToasts((s) => [toast, ...s]);
-
-    // auto remove after 6s
+  const show = (message, type) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
-      setToasts((s) => s.filter(x => x.id !== id));
-    }, (t.ttl || 6000));
-  }, []);
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3500);
+  };
 
-  const removeToast = useCallback((id) => {
-    setToasts((s) => s.filter(t => t.id !== id));
-  }, []);
+  return (
+    <ToastContext.Provider
+      value={{
+        showSuccess: (msg) => show(msg, "success"),
+        showError: (msg) => show(msg, "error")
+      }}
+    >
+      {children}
+      <ToastManager toasts={toasts} />
+    </ToastContext.Provider>
+  );
+}
 
-  return { toasts, pushToast, removeToast };
+export function useToast() {
+  return useContext(ToastContext);
 }
